@@ -1,0 +1,294 @@
+/* Reset and base styles */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  min-height: 100vh;
+  color: #333;
+}
+
+#root {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 2rem;
+  min-height: 100vh;
+}
+
+/* App container */
+.app {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2rem;
+  min-height: 100vh;
+}
+
+/* Header */
+.app-header {
+  text-align: center;
+  color: white;
+  margin-bottom: 1rem;
+}
+
+.app-header h1 {
+  font-size: 3rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.app-header p {
+  font-size: 1.2rem;
+  opacity: 0.9;
+}
+
+/* Controls */
+.controls {
+  background: rgba(255, 255, 255, 0.95);
+  padding: 1.5rem;
+  border-radius: 15px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  width: 100%;
+  max-width: 800px;
+}
+
+.control-group {
+  display: flex;
+  gap: 2rem;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.play-mode-selector,
+.chord-selector,
+.inversion-selector {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  min-width: 180px;
+}
+
+.play-mode-selector label,
+.chord-selector label,
+.inversion-selector label {
+  font-weight: 600;
+  color: #333;
+  font-size: 1.1rem;
+  white-space: nowrap;
+}
+
+.play-mode-selector select,
+.chord-selector select,
+.inversion-selector select {
+  padding: 0.75rem 1rem;
+  border: 2px solid #e1e5e9;
+  border-radius: 8px;
+  font-size: 1rem;
+  background: white;
+  color: #333;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  min-width: 140px;
+  flex: 1;
+}
+
+.play-mode-selector select:hover,
+.chord-selector select:hover,
+.inversion-selector select:hover {
+  border-color: #667eea;
+}
+
+.play-mode-selector select:focus,
+.chord-selector select:focus,
+.inversion-selector select:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+/* Piano container */
+.piano-container {
+  width: 100%;
+  max-width: 1400px;
+  background: rgba(255, 255, 255, 0.95);
+  padding: 2rem;
+  border-radius: 20px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  overflow-x: auto;
+}
+
+.piano {
+  position: relative;
+  height: 200px;
+  background: linear-gradient(180deg, #f8f9fa 0%, #e9ecef 100%);
+  border-radius: 10px;
+  border: 2px solid #dee2e6;
+  overflow: hidden;
+  min-width: 800px;
+}
+
+/* Piano keys */
+.piano-key {
+  position: absolute;
+  cursor: pointer;
+  transition: all 0.1s ease;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 1rem;
+  user-select: none;
+  height: 100%;
+}
+
+.piano-key.white {
+  background: linear-gradient(180deg, #ffffff 0%, #f8f9fa 100%);
+  border: 1px solid #dee2e6;
+  border-bottom: 3px solid #adb5bd;
+}
+
+.piano-key.white:hover {
+  background: linear-gradient(180deg, #e9ecef 0%, #dee2e6 100%);
+  transform: translateY(2px);
+}
+
+.piano-key.white:active {
+  background: linear-gradient(180deg, #ced4da 0%, #adb5bd 100%);
+  transform: translateY(4px);
+}
+
+.piano-key.black {
+  background: linear-gradient(180deg, #495057 0%, #343a40 100%);
+  border: 1px solid #212529;
+  border-bottom: 3px solid #212529;
+  color: white;
+  z-index: 2;
+  height: 60%;
+}
+
+.piano-key.black:hover {
+  background: linear-gradient(180deg, #343a40 0%, #212529 100%);
+  transform: translateY(2px);
+}
+
+.piano-key.black:active {
+  background: linear-gradient(180deg, #212529 0%, #000000 100%);
+  transform: translateY(4px);
+}
+
+/* Key labels */
+.key-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+.piano-key.black .key-label {
+  color: white;
+  font-size: 0.65rem;
+}
+
+/* Info section */
+.info {
+  background: rgba(255, 255, 255, 0.95);
+  padding: 1.5rem;
+  border-radius: 15px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  text-align: center;
+  width: 100%;
+  max-width: 600px;
+}
+
+.info p {
+  margin: 0.5rem 0;
+  font-size: 1.1rem;
+  color: #333;
+}
+
+.info strong {
+  color: #667eea;
+  font-weight: 700;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  #root {
+    padding: 1rem;
+  }
+  
+  .app-header h1 {
+    font-size: 2rem;
+  }
+  
+  .app-header p {
+    font-size: 1rem;
+  }
+  
+  .piano-container {
+    padding: 1rem;
+  }
+  
+  .piano {
+    height: 150px;
+    min-width: 600px;
+  }
+  
+  .key-label {
+    font-size: 0.6rem;
+  }
+  
+  .piano-key.black .key-label {
+    font-size: 0.5rem;
+  }
+  
+  .control-group {
+    flex-direction: column;
+    gap: 1rem;
+  }
+  
+  .play-mode-selector,
+  .chord-selector,
+  .inversion-selector {
+    min-width: auto;
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .piano {
+    height: 120px;
+    min-width: 400px;
+  }
+  
+  .key-label {
+    font-size: 0.5rem;
+  }
+  
+  .piano-key.black .key-label {
+    font-size: 0.4rem;
+  }
+  
+  .controls {
+    padding: 1rem;
+  }
+  
+  .info {
+    padding: 1rem;
+  }
+}
