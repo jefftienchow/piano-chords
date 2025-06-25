@@ -116,7 +116,14 @@ function App() {
     }
 
     const noteString = `${note}${octave}`
-    synth.triggerAttackRelease(noteString, '4n')
+    synth.triggerAttack(noteString)
+  }
+
+  // Stop note function
+  const stopNote = (note: string, octave: number) => {
+    if (!synth) return
+    const noteString = `${note}${octave}`
+    synth.triggerRelease(noteString)
   }
 
   // Play chord function
@@ -137,15 +144,40 @@ function App() {
       return `${NOTES[newIndex]}${octave + Math.floor((noteIndex + interval) / 12)}`
     })
 
-    synth.triggerAttackRelease(chordNotes, '4n')
+    synth.triggerAttack(chordNotes)
   }
 
-  // Handle key press
+  // Stop chord function
+  const stopChord = (rootNote: string, octave: number) => {
+    if (!synth) return
+    
+    const chordIntervals = CHORD_TYPES[selectedChordType]
+    const invertedIntervals = applyInversion(chordIntervals, selectedInversion)
+    
+    const chordNotes = invertedIntervals.map(interval => {
+      const noteIndex = NOTES.indexOf(rootNote)
+      const newIndex = (noteIndex + interval) % 12
+      return `${NOTES[newIndex]}${octave + Math.floor((noteIndex + interval) / 12)}`
+    })
+
+    synth.triggerRelease(chordNotes)
+  }
+
+  // Handle key press (mouse down)
   const handleKeyPress = (key: PianoKey) => {
     if (playMode === 'note') {
       playNote(key.note, key.octave)
     } else {
       playChord(key.note, key.octave)
+    }
+  }
+
+  // Handle key release (mouse up)
+  const handleKeyRelease = (key: PianoKey) => {
+    if (playMode === 'note') {
+      stopNote(key.note, key.octave)
+    } else {
+      stopChord(key.note, key.octave)
     }
   }
 
@@ -248,7 +280,9 @@ function App() {
               <div
                 key={`${key.note}-${key.octave}`}
                 className={`piano-key ${key.isBlack ? 'black' : 'white'}`}
-                onClick={() => handleKeyPress(key)}
+                onMouseDown={() => handleKeyPress(key)}
+                onMouseUp={() => handleKeyRelease(key)}
+                onMouseLeave={() => handleKeyRelease(key)}
                 style={{
                   left: position.left,
                   zIndex: position.zIndex,
