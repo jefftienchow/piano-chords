@@ -32,12 +32,25 @@ interface PianoKey {
   globalIndex: number
 }
 
+interface RecordedChord {
+  id: string
+  note: string
+  octave: number
+  chordType: keyof typeof CHORD_TYPES
+  inversion: number
+  timestamp: number
+}
+
 function App() {
   const [synth, setSynth] = useState<Tone.PolySynth | null>(null)
   const [selectedChordType, setSelectedChordType] = useState<keyof typeof CHORD_TYPES>('major')
   const [selectedInversion, setSelectedInversion] = useState<number>(0)
   const [playMode, setPlayMode] = useState<keyof typeof PLAY_MODES>('chord')
   const [isPlaying, setIsPlaying] = useState(false)
+  const [isRecording, setIsRecording] = useState(false)
+  const [recordedChords, setRecordedChords] = useState<RecordedChord[]>([])
+  const [isPlayingBack, setIsPlayingBack] = useState(false)
+  const [currentlyPlayingIndex, setCurrentlyPlayingIndex] = useState<number>(-1)
 
   // Initialize audio context and synthesizer
   useEffect(() => {
@@ -169,6 +182,8 @@ function App() {
       playNote(key.note, key.octave)
     } else {
       playChord(key.note, key.octave)
+      // Add to recording if recording is active
+      addChordToRecording(key)
     }
   }
 
@@ -179,6 +194,82 @@ function App() {
     } else {
       stopChord(key.note, key.octave)
     }
+  }
+
+  // Start recording
+  const startRecording = () => {
+    setRecordedChords([])
+    setIsRecording(true)
+  }
+
+  // Stop recording
+  const stopRecording = () => {
+    setIsRecording(false)
+  }
+
+  // Add chord to recording
+  const addChordToRecording = (key: PianoKey) => {
+    if (!isRecording || playMode !== 'chord') return
+
+    const newChord: RecordedChord = {
+      id: Date.now().toString(),
+      note: key.note,
+      octave: key.octave,
+      chordType: selectedChordType,
+      inversion: selectedInversion,
+      timestamp: Date.now()
+    }
+
+    setRecordedChords(prev => [...prev, newChord])
+  }
+
+  // Play back recorded sequence
+  const playBackSequence = async () => {
+    if (recordedChords.length === 0 || isPlayingBack) return
+
+    setIsPlayingBack(true)
+    setCurrentlyPlayingIndex(-1)
+    const chordDuration = 1000 // 1 second per chord
+
+    for (let i = 0; i < recordedChords.length; i++) {
+      const chord = recordedChords[i]
+      
+      // Highlight current chord
+      setCurrentlyPlayingIndex(i)
+      
+      // Play the chord
+      const chordIntervals = CHORD_TYPES[chord.chordType]
+      const invertedIntervals = applyInversion(chordIntervals, chord.inversion)
+      
+      const chordNotes = invertedIntervals.map(interval => {
+        const noteIndex = NOTES.indexOf(chord.note)
+        const newIndex = (noteIndex + interval) % 12
+        return `${NOTES[newIndex]}${chord.octave + Math.floor((noteIndex + interval) / 12)}`
+      })
+
+      if (synth) {
+        synth.triggerAttack(chordNotes)
+      }
+
+      // Wait for the chord duration
+      await new Promise(resolve => setTimeout(resolve, chordDuration))
+
+      // Stop the chord
+      if (synth) {
+        synth.triggerRelease(chordNotes)
+      }
+
+      // Small pause between chords
+      await new Promise(resolve => setTimeout(resolve, 200))
+    }
+
+    setIsPlayingBack(false)
+    setCurrentlyPlayingIndex(-1)
+  }
+
+  // Clear recorded sequence
+  const clearRecording = () => {
+    setRecordedChords([])
   }
 
   // Calculate key position based on global index
@@ -306,6 +397,56 @@ function App() {
           </>
         )}
       </div>
+
+      {playMode === 'chord' && (
+        <div className="recording-section">
+          <div className="recording-controls">
+            <button 
+              className={`record-button ${isRecording ? 'recording' : ''}`}
+              onClick={isRecording ? stopRecording : startRecording}
+            >
+              {isRecording ? '⏹️ Stop Recording' : '🔴 Start Recording'}
+            </button>
+            
+            <button 
+              className="play-button"
+              onClick={playBackSequence}
+              disabled={recordedChords.length === 0 || isPlayingBack}
+            >
+              {isPlayingBack ? '⏸️ Playing...' : '▶️ Play Sequence'}
+            </button>
+            
+            {recordedChords.length > 0 && (
+              <button 
+                className="clear-button"
+                onClick={clearRecording}
+                disabled={isRecording || isPlayingBack}
+              >
+                🗑️ Clear
+              </button>
+            )}
+          </div>
+
+          {recordedChords.length > 0 && (
+            <div className="chord-sequence">
+              <h3>Recorded Chord Sequence:</h3>
+              <div className="chord-list">
+                {recordedChords.map((chord, index) => (
+                  <div 
+                    key={chord.id} 
+                    className={`chord-item ${currentlyPlayingIndex === index ? 'playing' : ''}`}
+                  >
+                    <span className="chord-details">
+                      {chord.note}{chord.octave} {abbreviateChordType(chord.chordType)}
+                      {chord.inversion > 0 && ` (${chord.inversion}${getOrdinalSuffix(chord.inversion)} inv)`}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }
@@ -324,6 +465,21 @@ function getOrdinalSuffix(num: number): string {
     return 'rd'
   }
   return 'th'
+}
+
+// Helper function to abbreviate chord types
+function abbreviateChordType(chordType: keyof typeof CHORD_TYPES): string {
+  const abbreviations: Record<keyof typeof CHORD_TYPES, string> = {
+    major: 'maj',
+    minor: 'min',
+    diminished: 'dim',
+    augmented: 'aug',
+    major7: 'maj7',
+    minor7: 'min7',
+    dominant7: 'dom7',
+    diminished7: 'dim7'
+  }
+  return abbreviations[chordType]
 }
 
 export default App

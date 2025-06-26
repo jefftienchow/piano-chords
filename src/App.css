@@ -226,6 +226,162 @@ body {
   font-weight: 700;
 }
 
+/* Recording section */
+.recording-section {
+  background: rgba(255, 255, 255, 0.95);
+  padding: 1.5rem;
+  border-radius: 15px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  width: 100%;
+  max-width: 1200px;
+}
+
+.recording-controls {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 1.5rem;
+}
+
+.record-button,
+.play-button,
+.clear-button {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  min-width: 140px;
+}
+
+.record-button {
+  background: #dc3545;
+  color: white;
+}
+
+.record-button:hover:not(:disabled) {
+  background: #c82333;
+  transform: translateY(-2px);
+}
+
+.record-button.recording {
+  background: #ffc107;
+  color: #333;
+  animation: pulse 1.5s infinite;
+}
+
+.play-button {
+  background: #28a745;
+  color: white;
+}
+
+.play-button:hover:not(:disabled) {
+  background: #218838;
+  transform: translateY(-2px);
+}
+
+.play-button:disabled {
+  background: #6c757d;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.clear-button {
+  background: #6c757d;
+  color: white;
+}
+
+.clear-button:hover:not(:disabled) {
+  background: #5a6268;
+  transform: translateY(-2px);
+}
+
+.clear-button:disabled {
+  background: #adb5bd;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.chord-sequence {
+  text-align: left;
+}
+
+.chord-sequence h3 {
+  color: #333;
+  margin-bottom: 1rem;
+  text-align: center;
+  font-size: 1.3rem;
+}
+
+.chord-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  justify-content: center;
+}
+
+.chord-item {
+  background: rgba(102, 126, 234, 0.1);
+  border: 2px solid rgba(102, 126, 234, 0.3);
+  border-radius: 6px;
+  padding: 0.35rem 0.6rem;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  min-width: 120px;
+  transition: all 0.3s ease;
+}
+
+.chord-item:hover {
+  background: rgba(102, 126, 234, 0.2);
+  border-color: rgba(102, 126, 234, 0.5);
+  transform: translateY(-2px);
+}
+
+.chord-item.playing {
+  background: rgba(255, 193, 7, 0.3);
+  border-color: #ffc107;
+  box-shadow: 0 0 15px rgba(255, 193, 7, 0.5);
+  transform: translateY(-2px);
+  animation: playing-pulse 0.8s infinite;
+}
+
+.chord-details {
+  font-size: 0.85rem;
+  color: #333;
+  font-weight: 500;
+}
+
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(255, 193, 7, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(255, 193, 7, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 193, 7, 0);
+  }
+}
+
+@keyframes playing-pulse {
+  0% {
+    box-shadow: 0 0 15px rgba(255, 193, 7, 0.5);
+  }
+  50% {
+    box-shadow: 0 0 25px rgba(255, 193, 7, 0.8);
+  }
+  100% {
+    box-shadow: 0 0 15px rgba(255, 193, 7, 0.5);
+  }
+}
+
 /* Responsive design */
 @media (max-width: 768px) {
   #root {
