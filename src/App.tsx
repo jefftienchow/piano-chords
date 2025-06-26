@@ -51,6 +51,7 @@ function App() {
   const [recordedChords, setRecordedChords] = useState<RecordedChord[]>([])
   const [isPlayingBack, setIsPlayingBack] = useState(false)
   const [currentlyPlayingIndex, setCurrentlyPlayingIndex] = useState<number>(-1)
+  const [octaveShift, setOctaveShift] = useState<number>(0)
 
   // Initialize audio context and synthesizer
   useEffect(() => {
@@ -73,12 +74,15 @@ function App() {
     }
   }, [])
 
-  // Generate piano keys
+  // Generate piano keys with octave shift
   const generatePianoKeys = (): PianoKey[] => {
     const keys: PianoKey[] = []
     let globalIndex = 0
     
-    OCTAVES.forEach(octave => {
+    // Apply octave shift to the base octaves
+    const shiftedOctaves = OCTAVES.map(octave => octave + octaveShift)
+    
+    shiftedOctaves.forEach(octave => {
       NOTES.forEach((note, noteIndex) => {
         const isBlack = note.includes('#')
         const frequency = Tone.Frequency(`${note}${octave}`).toFrequency()
@@ -276,7 +280,7 @@ function App() {
   const getKeyPosition = (key: PianoKey): { left: string; zIndex: number } => {
     // Calculate position based on the actual piano layout
     const noteIndex = NOTES.indexOf(key.note)
-    const octaveOffset = (key.octave - OCTAVES[0]) * 7 // 7 white keys per octave
+    const octaveOffset = (key.octave - (OCTAVES[0] + octaveShift)) * 7 // 7 white keys per octave
     const whiteKeyIndex = getWhiteKeyIndex(noteIndex) + octaveOffset
     
     if (key.isBlack) {
@@ -303,6 +307,18 @@ function App() {
     return blackKeyOffsets[noteIndex] * (100 / (OCTAVES.length * 7)) * 0.8
   }
 
+  // Calculate key width based on type
+  const getKeyWidth = (key: PianoKey): string => {
+    const totalWhiteKeys = OCTAVES.length * 7 // 2 octaves * 7 white keys = 14
+    const whiteKeyWidth = 100 / totalWhiteKeys // Each white key takes equal width
+    
+    if (key.isBlack) {
+      return `${whiteKeyWidth * 0.4}%` // Black keys are 40% of white key width
+    } else {
+      return `${whiteKeyWidth}%`
+    }
+  }
+
   return (
     <div className="app">
       <header className="app-header">
@@ -321,6 +337,21 @@ function App() {
             >
               <option value="chord">Chord</option>
               <option value="note">Single Note</option>
+            </select>
+          </div>
+
+          <div className="octave-shift-selector">
+            <label htmlFor="octave-shift">Octave Shift:</label>
+            <select
+              id="octave-shift"
+              value={octaveShift}
+              onChange={(e) => setOctaveShift(Number(e.target.value))}
+            >
+              <option value={-2}>-2 Octaves</option>
+              <option value={-1}>-1 Octave</option>
+              <option value={0}>Normal</option>
+              <option value={1}>+1 Octave</option>
+              <option value={2}>+2 Octaves</option>
             </select>
           </div>
 
@@ -377,7 +408,7 @@ function App() {
                 style={{
                   left: position.left,
                   zIndex: position.zIndex,
-                  width: key.isBlack ? '4%' : '14.28%' // 7 white keys per octave = 14.28% each
+                  width: getKeyWidth(key)
                 }}
               >
                 <span className="key-label">{key.note}{key.octave}</span>

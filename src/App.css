@@ -72,6 +72,7 @@ body {
 }
 
 .play-mode-selector,
+.octave-shift-selector,
 .chord-selector,
 .inversion-selector {
   display: flex;
@@ -81,6 +82,7 @@ body {
 }
 
 .play-mode-selector label,
+.octave-shift-selector label,
 .chord-selector label,
 .inversion-selector label {
   font-weight: 600;
@@ -90,6 +92,7 @@ body {
 }
 
 .play-mode-selector select,
+.octave-shift-selector select,
 .chord-selector select,
 .inversion-selector select {
   padding: 0.75rem 1rem;
@@ -105,12 +108,14 @@ body {
 }
 
 .play-mode-selector select:hover,
+.octave-shift-selector select:hover,
 .chord-selector select:hover,
 .inversion-selector select:hover {
   border-color: #667eea;
 }
 
 .play-mode-selector select:focus,
+.octave-shift-selector select:focus,
 .chord-selector select:focus,
 .inversion-selector select:focus {
   outline: none;
@@ -195,6 +200,7 @@ body {
   font-weight: 600;
   opacity: 0.7;
   pointer-events: none;
+  text-align: center;
 }
 
 .piano-key.black .key-label {
@@ -419,6 +425,7 @@ body {
   }
   
   .play-mode-selector,
+  .octave-shift-selector,
   .chord-selector,
   .inversion-selector {
     min-width: auto;
