@@ -42,7 +42,7 @@ interface RecordedChord {
 }
 
 function App() {
-  const [synth, setSynth] = useState<Tone.PolySynth | null>(null)
+  const [sampler, setSampler] = useState<Tone.Sampler | null>(null)
   const [selectedChordType, setSelectedChordType] = useState<keyof typeof CHORD_TYPES>('major')
   const [selectedInversion, setSelectedInversion] = useState<number>(0)
   const [playMode, setPlayMode] = useState<keyof typeof PLAY_MODES>('chord')
@@ -53,24 +53,34 @@ function App() {
   const [currentlyPlayingIndex, setCurrentlyPlayingIndex] = useState<number>(-1)
   const [octaveShift, setOctaveShift] = useState<number>(0)
 
-  // Initialize audio context and synthesizer
+  // Initialize audio context and sampler
   useEffect(() => {
-    const newSynth = new Tone.PolySynth(Tone.Synth, {
-      oscillator: {
-        type: 'triangle'
-      },
-      envelope: {
-        attack: 0.05,
-        decay: 1,
-        sustain: 0.1,
-        release: 1
+    // Create sample URLs for only the available notes
+    const sampleUrls: Record<string, string> = {}
+    
+    // Available notes from the sample set
+    const availableNotes = ['A', 'C', 'D#', 'F#']
+    for (let octave = 0; octave <= 8; octave++) {
+      availableNotes.forEach(note => {
+        const noteName = `${note}${octave}`
+        sampleUrls[noteName] = `${note.replace('#', 'sharp')}${octave}v4.wav`
+      })
+    }
+    console.log(sampleUrls)
+
+    const newSampler = new Tone.Sampler({
+      urls: sampleUrls,
+      baseUrl: "/samples/", // put your folder path here
+      release: 1,
+      onload: () => {
+        console.log("Samples loaded")
       }
     }).toDestination()
 
-    setSynth(newSynth)
+    setSampler(newSampler)
 
     return () => {
-      newSynth.dispose()
+      newSampler.dispose()
     }
   }, [])
 
@@ -125,7 +135,7 @@ function App() {
 
   // Play note function
   const playNote = async (note: string, octave: number) => {
-    if (!synth) return
+    if (!sampler) return
 
     // Start audio context if not already started
     if (Tone.context.state !== 'running') {
@@ -133,19 +143,19 @@ function App() {
     }
 
     const noteString = `${note}${octave}`
-    synth.triggerAttack(noteString)
+    sampler.triggerAttack(noteString)
   }
 
   // Stop note function
   const stopNote = (note: string, octave: number) => {
-    if (!synth) return
+    if (!sampler) return
     const noteString = `${note}${octave}`
-    synth.triggerRelease(noteString)
+    sampler.triggerRelease(noteString)
   }
 
   // Play chord function
   const playChord = async (rootNote: string, octave: number) => {
-    if (!synth) return
+    if (!sampler) return
 
     // Start audio context if not already started
     if (Tone.context.state !== 'running') {
@@ -161,12 +171,12 @@ function App() {
       return `${NOTES[newIndex]}${octave + Math.floor((noteIndex + interval) / 12)}`
     })
 
-    synth.triggerAttack(chordNotes)
+    sampler.triggerAttack(chordNotes)
   }
 
   // Stop chord function
   const stopChord = (rootNote: string, octave: number) => {
-    if (!synth) return
+    if (!sampler) return
     
     const chordIntervals = CHORD_TYPES[selectedChordType]
     const invertedIntervals = applyInversion(chordIntervals, selectedInversion)
@@ -177,7 +187,7 @@ function App() {
       return `${NOTES[newIndex]}${octave + Math.floor((noteIndex + interval) / 12)}`
     })
 
-    synth.triggerRelease(chordNotes)
+    sampler.triggerRelease(chordNotes)
   }
 
   // Handle key press (mouse down)
@@ -251,16 +261,16 @@ function App() {
         return `${NOTES[newIndex]}${chord.octave + Math.floor((noteIndex + interval) / 12)}`
       })
 
-      if (synth) {
-        synth.triggerAttack(chordNotes)
+      if (sampler) {
+        sampler.triggerAttack(chordNotes)
       }
 
       // Wait for the chord duration
       await new Promise(resolve => setTimeout(resolve, chordDuration))
 
       // Stop the chord
-      if (synth) {
-        synth.triggerRelease(chordNotes)
+      if (sampler) {
+        sampler.triggerRelease(chordNotes)
       }
 
       // Small pause between chords
