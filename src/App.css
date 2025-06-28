@@ -270,6 +270,12 @@ body {
   opacity: 0.6;
 }
 
+.control-button svg {
+  width: 20px;
+  height: 20px;
+  fill: currentColor;
+}
+
 .control-button.active {
   opacity: 1;
 }

@@ -1,6 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import './App.css'
 
+// Import React Icons
+import { FiPlay, FiSquare, FiCircle, FiTrash2 } from 'react-icons/fi'
+
 // Import constants and types
 import { CHORD_QUALITIES, CHORD_TYPES, PLAY_MODES, type ChordType, type ChordQuality, type PlayMode } from './constants/music'
 import type { PianoKey, RecordedChord } from './types/music'
@@ -367,7 +370,7 @@ function App() {
             disabled={recordedChords.length === 0}
             title={recordedChords.length === 0 ? 'No recorded sequence' : isPlayingBack ? 'Stop Playback' : 'Play Sequence'}
           >
-            {isPlayingBack ? '⏹️' : '▶️'}
+            {isPlayingBack ? <FiSquare /> : <FiPlay />}
           </button>
           
           {playMode === 'chord' && (
@@ -376,7 +379,7 @@ function App() {
               onClick={isRecording ? stopRecording : startRecording}
               title={isRecording ? 'Stop Recording' : 'Start Recording'}
             >
-              {isRecording ? '⏺️' : '⏺️'}
+              <FiCircle />
             </button>
           )}
           
@@ -386,7 +389,7 @@ function App() {
             disabled={recordedChords.length === 0 || isRecording || isPlayingBack}
             title="Clear recorded sequence"
           >
-            🗑️
+            <FiTrash2 />
           </button>
         </div>
 
