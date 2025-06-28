@@ -1,4 +1,4 @@
-import { NOTES, CHORD_TYPES, type ChordType } from '../constants/music'
+import { NOTES, CHORD_QUALITIES, CHORD_TYPES, type ChordType, type ChordQuality } from '../constants/music'
 
 // Apply inversion to chord intervals
 export const applyInversion = (intervals: number[], inversion: number): number[] => {
@@ -22,31 +22,35 @@ export const generateChordNotes = (rootNote: string, intervals: number[], octave
   })
 }
 
-// Get max inversions for a chord type
-export const getMaxInversions = (chordType: ChordType): number => {
-  const chordIntervals = CHORD_TYPES[chordType]
-  return chordIntervals.length - 1
+// Get chord intervals based on quality and type
+export const getChordIntervals = (quality: ChordQuality, type: ChordType): number[] => {
+  const baseIntervals = [...CHORD_QUALITIES[quality]]
+  
+  if (type === 'triad') {
+    return baseIntervals
+  } else if (type === 'seventh') {
+    // Add appropriate 7th based on quality
+    switch (quality) {
+      case 'major':
+        return [...baseIntervals, 11] // Major 7th
+      case 'minor':
+        return [...baseIntervals, 10] // Minor 7th
+      case 'diminished':
+        return [...baseIntervals, 9] // Diminished 7th
+      case 'augmented':
+        return [...baseIntervals, 10] // Dominant 7th (augmented doesn't have standard 7th)
+      default:
+        return [...baseIntervals, 10] // Default to dominant 7th
+    }
+  }
+  
+  return baseIntervals
 }
 
-// Add 7th to current chord type
-export const addSeventhToChordType = (chordType: ChordType): ChordType => {
-  switch (chordType) {
-    case 'major':
-      return 'major7'
-    case 'minor':
-      return 'minor7'
-    case 'diminished':
-      return 'diminished7'
-    case 'augmented':
-      return 'dominant7' // Augmented doesn't have a standard 7th, use dominant 7th
-    case 'major7':
-    case 'minor7':
-    case 'dominant7':
-    case 'diminished7':
-      return chordType // Already a 7th chord, keep as is
-    default:
-      return 'dominant7' // Fallback
-  }
+// Get max inversions for a chord
+export const getMaxInversions = (quality: ChordQuality, type: ChordType): number => {
+  const intervals = getChordIntervals(quality, type)
+  return intervals.length - 1
 }
 
 // Generate ordinal suffix for inversion display
@@ -65,26 +69,29 @@ export const getOrdinalSuffix = (num: number): string => {
   return "th"
 }
 
-// Abbreviate chord type for display
-export const abbreviateChordType = (chordType: ChordType): string => {
-  switch (chordType) {
+// Abbreviate chord for display
+export const abbreviateChord = (quality: ChordQuality, type: ChordType): string => {
+  let qualityAbbr = ''
+  switch (quality) {
     case 'major':
-      return 'Maj'
+      qualityAbbr = 'Maj'
+      break
     case 'minor':
-      return 'min'
+      qualityAbbr = 'min'
+      break
     case 'diminished':
-      return 'dim'
+      qualityAbbr = 'dim'
+      break
     case 'augmented':
-      return 'aug'
-    case 'major7':
-      return 'Maj7'
-    case 'minor7':
-      return 'min7'
-    case 'dominant7':
-      return '7'
-    case 'diminished7':
-      return 'dim7'
+      qualityAbbr = 'aug'
+      break
     default:
-      return chordType
+      qualityAbbr = quality
   }
+  
+  if (type === 'seventh') {
+    qualityAbbr += '7'
+  }
+  
+  return qualityAbbr
 } 

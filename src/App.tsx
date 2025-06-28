@@ -1,12 +1,12 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import './App.css'
 
 // Import constants and types
-import { CHORD_TYPES, PLAY_MODES, type ChordType, type PlayMode } from './constants/music'
+import { CHORD_QUALITIES, CHORD_TYPES, PLAY_MODES, type ChordType, type ChordQuality, type PlayMode } from './constants/music'
 import type { PianoKey, RecordedChord } from './types/music'
 
 // Import utilities
-import { getMaxInversions, addSeventhToChordType, getOrdinalSuffix, abbreviateChordType, applyInversion, generateChordNotes } from './utils/music'
+import { getMaxInversions, getOrdinalSuffix, abbreviateChord, applyInversion, generateChordNotes, getChordIntervals } from './utils/music'
 import { generatePianoKeys, getKeyPosition, getKeyWidth } from './utils/pianoKeys'
 
 // Import hooks
@@ -19,7 +19,8 @@ import * as Tone from 'tone'
 
 function App() {
   // State management
-  const [selectedChordType, setSelectedChordType] = useState<ChordType>('major')
+  const [selectedChordQuality, setSelectedChordQuality] = useState<ChordQuality>('major')
+  const [selectedChordType, setSelectedChordType] = useState<ChordType>('triad')
   const [selectedInversion, setSelectedInversion] = useState<number>(0)
   const [playMode, setPlayMode] = useState<PlayMode>('chord')
   const [isPlaying, setIsPlaying] = useState(false)
@@ -28,6 +29,9 @@ function App() {
   const [isPlayingBack, setIsPlayingBack] = useState(false)
   const [currentlyPlayingIndex, setCurrentlyPlayingIndex] = useState<number>(-1)
   const [octaveShift, setOctaveShift] = useState<number>(0)
+
+  // Ref to track if playback should be stopped
+  const shouldStopPlayback = useRef(false)
 
   // Audio hook
   const { sampler, playNotes, stopNotes } = useAudioSampler()
@@ -54,32 +58,34 @@ function App() {
     sampler.triggerRelease(noteString)
   }, [sampler])
 
-  const handleChordPlay = useCallback(async (note: string, octave: number, inversion: number, chordType: ChordType) => {
+  const handleChordPlay = useCallback(async (note: string, octave: number, inversion: number, quality: ChordQuality, type: ChordType) => {
     if (!sampler) return
-
+    
     // Start audio context if not already started
     if (sampler.context.state !== 'running') {
       await Tone.start()
     }
 
-    const chordIntervals = [...CHORD_TYPES[chordType]]
-    const invertedIntervals = applyInversion(chordIntervals, inversion)
+    const intervals = getChordIntervals(quality, type)
+    const invertedIntervals = applyInversion(intervals, inversion)
     const chordNotes = generateChordNotes(note, invertedIntervals, octave)
     
     sampler.triggerAttack(chordNotes)
+    setIsPlaying(true)
   }, [sampler])
 
-  const handleChordStop = useCallback((note: string, octave: number, inversion: number, chordType: ChordType) => {
+  const handleChordStop = useCallback((note: string, octave: number, inversion: number, quality: ChordQuality, type: ChordType) => {
     if (!sampler) return
     
-    const chordIntervals = [...CHORD_TYPES[chordType]]
-    const invertedIntervals = applyInversion(chordIntervals, inversion)
+    const intervals = getChordIntervals(quality, type)
+    const invertedIntervals = applyInversion(intervals, inversion)
     const chordNotes = generateChordNotes(note, invertedIntervals, octave)
     
     // Stop each note in the chord
     chordNotes.forEach(sampleString => {
       sampler.triggerRelease(sampleString)
     })
+    setIsPlaying(false)
   }, [sampler])
 
   // Recording handlers
@@ -87,16 +93,17 @@ function App() {
     if (!isRecording) return
     
     const newChord: RecordedChord = {
-      id: Date.now().toString(),
+      id: `${key.note}-${key.octave}-${Date.now()}`,
       note: key.note,
       octave: key.octave,
+      chordQuality: selectedChordQuality,
       chordType: selectedChordType,
       inversion: selectedInversion,
       timestamp: Date.now()
     }
     
     setRecordedChords(prev => [...prev, newChord])
-  }, [isRecording, selectedChordType, selectedInversion])
+  }, [isRecording, selectedChordQuality, selectedChordType, selectedInversion])
 
   const startRecording = useCallback(() => {
     setIsRecording(true)
@@ -117,26 +124,57 @@ function App() {
     
     setIsPlayingBack(true)
     setCurrentlyPlayingIndex(0)
+    shouldStopPlayback.current = false
     
     for (let i = 0; i < recordedChords.length; i++) {
+      // Check if playback should be stopped
+      if (shouldStopPlayback.current) {
+        break
+      }
+      
       const chord = recordedChords[i]
       setCurrentlyPlayingIndex(i)
       
-      await handleChordPlay(chord.note, chord.octave, chord.inversion, chord.chordType)
+      await handleChordPlay(chord.note, chord.octave, chord.inversion, chord.chordQuality, chord.chordType)
       
-      // Wait for chord duration
-      await new Promise(resolve => setTimeout(resolve, 1000))
+      // Wait for chord duration with interruption check
+      await new Promise(resolve => {
+        const timeout = setTimeout(resolve, 1000)
+        // Check every 100ms if we should stop
+        const interval = setInterval(() => {
+          if (shouldStopPlayback.current) {
+            clearTimeout(timeout)
+            clearInterval(interval)
+            resolve(undefined)
+          }
+        }, 100)
+      })
       
-      handleChordStop(chord.note, chord.octave, chord.inversion, chord.chordType)
+      if (shouldStopPlayback.current) {
+        break
+      }
       
-      // Wait between chords
+      handleChordStop(chord.note, chord.octave, chord.inversion, chord.chordQuality, chord.chordType)
+      
+      // Wait between chords with interruption check
       if (i < recordedChords.length - 1) {
-        await new Promise(resolve => setTimeout(resolve, 200))
+        await new Promise(resolve => {
+          const timeout = setTimeout(resolve, 200)
+          // Check every 50ms if we should stop
+          const interval = setInterval(() => {
+            if (shouldStopPlayback.current) {
+              clearTimeout(timeout)
+              clearInterval(interval)
+              resolve(undefined)
+            }
+          }, 50)
+        })
       }
     }
     
     setIsPlayingBack(false)
     setCurrentlyPlayingIndex(-1)
+    shouldStopPlayback.current = false
   }, [recordedChords, sampler, handleChordPlay, handleChordStop])
 
   // Mouse event handlers
@@ -144,23 +182,24 @@ function App() {
     if (playMode === 'note') {
       handleNotePlay(key.note, key.octave)
     } else {
-      handleChordPlay(key.note, key.octave, selectedInversion, selectedChordType)
+      handleChordPlay(key.note, key.octave, selectedInversion, selectedChordQuality, selectedChordType)
       addChordToRecording(key)
     }
-  }, [playMode, selectedInversion, selectedChordType, handleNotePlay, handleChordPlay, addChordToRecording])
+  }, [playMode, selectedInversion, selectedChordQuality, selectedChordType, handleNotePlay, handleChordPlay, addChordToRecording])
 
   const handleKeyRelease = useCallback((key: PianoKey) => {
     if (playMode === 'note') {
       handleNoteStop(key.note, key.octave)
     } else {
-      handleChordStop(key.note, key.octave, selectedInversion, selectedChordType)
+      handleChordStop(key.note, key.octave, selectedInversion, selectedChordQuality, selectedChordType)
     }
-  }, [playMode, selectedInversion, selectedChordType, handleNoteStop, handleChordStop])
+  }, [playMode, selectedInversion, selectedChordQuality, selectedChordType, handleNoteStop, handleChordStop])
 
   // Keyboard controls hook
   useKeyboardControls({
     playMode,
     octaveShift,
+    selectedChordQuality,
     selectedChordType,
     selectedInversion,
     isRecording,
@@ -169,8 +208,7 @@ function App() {
     onChordPlay: handleChordPlay,
     onChordStop: handleChordStop,
     onAddToRecording: addChordToRecording,
-    getMaxInversions: () => getMaxInversions(selectedChordType),
-    addSeventhToChordType
+    getMaxInversions: () => getMaxInversions(selectedChordQuality, selectedChordType)
   })
 
   return (
@@ -212,6 +250,24 @@ function App() {
           {playMode === 'chord' && (
             <>
               <div className="chord-selector">
+                <label htmlFor="chord-quality">Chord Quality:</label>
+                <select
+                  id="chord-quality"
+                  value={selectedChordQuality}
+                  onChange={(e) => {
+                    setSelectedChordQuality(e.target.value as ChordQuality)
+                    setSelectedChordType('triad') // Reset chord type when quality changes
+                  }}
+                >
+                  {Object.keys(CHORD_QUALITIES).map(quality => (
+                    <option key={quality} value={quality}>
+                      {quality.charAt(0).toUpperCase() + quality.slice(1)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="chord-selector">
                 <label htmlFor="chord-type">Chord Type:</label>
                 <select
                   id="chord-type"
@@ -236,7 +292,7 @@ function App() {
                   value={selectedInversion} 
                   onChange={(e) => setSelectedInversion(Number(e.target.value))}
                 >
-                  {Array.from({ length: getMaxInversions(selectedChordType) + 1 }, (_, i) => (
+                  {Array.from({ length: getMaxInversions(selectedChordQuality, selectedChordType) + 1 }, (_, i) => (
                     <option key={i} value={i}>
                       {i === 0 ? 'Root Position' : `${i}${getOrdinalSuffix(i)} Inversion`}
                     </option>
@@ -277,66 +333,83 @@ function App() {
         </div>
       </div>
 
-      <div className="info">
-        <p>Current mode: <strong>{playMode === 'note' ? 'Single Note' : 'Chord'}</strong></p>
-        {playMode === 'chord' && (
-          <>
-            <p>Chord type: <strong>{selectedChordType}</strong></p>
-            <p>Inversion: <strong>{selectedInversion === 0 ? 'Root Position' : `${selectedInversion}${getOrdinalSuffix(selectedInversion)} Inversion`}</strong></p>
-            <p>Intervals: {applyInversion([...CHORD_TYPES[selectedChordType]], selectedInversion).join(', ')}</p>
-          </>
-        )}
-      </div>
-
       {playMode === 'chord' && (
-        <div className="recording-section">
-          <div className="recording-controls">
-            <button 
-              className={`record-button ${isRecording ? 'recording' : ''}`}
-              onClick={isRecording ? stopRecording : startRecording}
-            >
-              {isRecording ? '⏹️ Stop Recording' : '🔴 Start Recording'}
-            </button>
-            
-            <button 
-              className="play-button"
-              onClick={playBackSequence}
-              disabled={recordedChords.length === 0 || isPlayingBack}
-            >
-              {isPlayingBack ? '⏸️ Playing...' : '▶️ Play Sequence'}
-            </button>
-            
-            {recordedChords.length > 0 && (
-              <button 
-                className="clear-button"
-                onClick={clearRecording}
-                disabled={isRecording || isPlayingBack}
-              >
-                🗑️ Clear
-              </button>
-            )}
-          </div>
-
-          {recordedChords.length > 0 && (
-            <div className="chord-sequence">
-              <h3>Recorded Chord Sequence:</h3>
-              <div className="chord-list">
-                {recordedChords.map((chord, index) => (
-                  <div 
-                    key={chord.id} 
-                    className={`chord-item ${currentlyPlayingIndex === index ? 'playing' : ''}`}
-                  >
-                    <span className="chord-details">
-                      {chord.note}{chord.octave} {abbreviateChordType(chord.chordType)}
-                      {chord.inversion > 0 && ` (${chord.inversion}${getOrdinalSuffix(chord.inversion)} inv)`}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+        <div className="info">
+          <p>
+            Chord quality: <strong>{selectedChordQuality}</strong>
+            {' • '}Chord type: <strong>{selectedChordType}</strong>
+            {' • '}Inversion: <strong>{selectedInversion === 0 ? 'Root Position' : `${selectedInversion}${getOrdinalSuffix(selectedInversion)} Inversion`}</strong>
+          </p>
         </div>
       )}
+
+      <div className="recording-section">
+        <div className="recording-controls">
+          <button 
+            className={`control-button play-button ${recordedChords.length > 0 && !isPlayingBack ? 'active' : ''} ${isPlayingBack ? 'playing' : ''}`}
+            onClick={() => {
+              if (isPlayingBack) {
+                // Stop playback
+                shouldStopPlayback.current = true
+                setIsPlayingBack(false)
+                setCurrentlyPlayingIndex(-1)
+                
+                // Stop the current chord that's playing
+                if (currentlyPlayingIndex >= 0 && recordedChords[currentlyPlayingIndex]) {
+                  const currentChord = recordedChords[currentlyPlayingIndex]
+                  handleChordStop(currentChord.note, currentChord.octave, currentChord.inversion, currentChord.chordQuality, currentChord.chordType)
+                }
+              } else {
+                // Start playback
+                playBackSequence()
+              }
+            }}
+            disabled={recordedChords.length === 0}
+            title={recordedChords.length === 0 ? 'No recorded sequence' : isPlayingBack ? 'Stop Playback' : 'Play Sequence'}
+          >
+            {isPlayingBack ? '⏹️' : '▶️'}
+          </button>
+          
+          {playMode === 'chord' && (
+            <button 
+              className={`control-button record-button ${isRecording ? 'active' : ''}`}
+              onClick={isRecording ? stopRecording : startRecording}
+              title={isRecording ? 'Stop Recording' : 'Start Recording'}
+            >
+              {isRecording ? '⏺️' : '⏺️'}
+            </button>
+          )}
+          
+          <button 
+            className={`control-button clear-button ${recordedChords.length > 0 ? 'active' : ''}`}
+            onClick={clearRecording}
+            disabled={recordedChords.length === 0 || isRecording || isPlayingBack}
+            title="Clear recorded sequence"
+          >
+            🗑️
+          </button>
+        </div>
+
+        {recordedChords.length > 0 && (
+          <div className="chord-sequence">
+            <h3>Recorded {playMode === 'chord' ? 'Chord' : 'Note'} Sequence:</h3>
+            <div className="chord-list">
+              {recordedChords.map((chord, index) => (
+                <div 
+                  key={chord.id} 
+                  className={`chord-item ${currentlyPlayingIndex === index ? 'playing' : ''}`}
+                >
+                  <span className="chord-details">
+                    {chord.note}{chord.octave}
+                    {playMode === 'chord' && ` ${abbreviateChord(chord.chordQuality, chord.chordType)}`}
+                    {playMode === 'chord' && chord.inversion > 0 && ` (${chord.inversion}${getOrdinalSuffix(chord.inversion)} inv)`}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   )
 }

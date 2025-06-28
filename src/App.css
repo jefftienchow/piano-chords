@@ -254,65 +254,67 @@ body {
   margin-bottom: 1.5rem;
 }
 
-.record-button,
-.play-button,
-.clear-button {
-  padding: 0.75rem 1.5rem;
+.control-button {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
   border: none;
-  border-radius: 8px;
-  font-size: 1rem;
-  font-weight: 600;
+  font-size: 1.2rem;
   cursor: pointer;
   transition: all 0.3s ease;
-  min-width: 140px;
-}
-
-.record-button {
-  background: #dc3545;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #6c757d;
   color: white;
+  opacity: 0.6;
 }
 
-.record-button:hover:not(:disabled) {
-  background: #c82333;
+.control-button.active {
+  opacity: 1;
+}
+
+.control-button:hover:not(:disabled) {
   transform: translateY(-2px);
+  opacity: 1;
 }
 
-.record-button.recording {
-  background: #ffc107;
-  color: #333;
-  animation: pulse 1.5s infinite;
+.control-button:disabled {
+  cursor: not-allowed;
+  transform: none;
+  opacity: 0.3;
 }
 
-.play-button {
+.play-button.active {
   background: #28a745;
-  color: white;
 }
 
-.play-button:hover:not(:disabled) {
+.play-button.active:hover:not(:disabled) {
   background: #218838;
-  transform: translateY(-2px);
 }
 
-.play-button:disabled {
+.play-button.playing {
+  background: #dc3545;
+}
+
+.play-button.playing:hover:not(:disabled) {
+  background: #c82333;
+}
+
+.record-button.active {
+  background: #dc3545;
+}
+
+.record-button.active:hover:not(:disabled) {
+  background: #c82333;
+}
+
+.clear-button.active {
   background: #6c757d;
-  cursor: not-allowed;
-  transform: none;
 }
 
-.clear-button {
-  background: #6c757d;
-  color: white;
-}
-
-.clear-button:hover:not(:disabled) {
+.clear-button.active:hover:not(:disabled) {
   background: #5a6268;
-  transform: translateY(-2px);
-}
-
-.clear-button:disabled {
-  background: #adb5bd;
-  cursor: not-allowed;
-  transform: none;
 }
 
 .chord-sequence {

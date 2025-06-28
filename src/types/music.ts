@@ -1,4 +1,4 @@
-import type { ChordType } from '../constants/music'
+import type { ChordType, ChordQuality } from '../constants/music'
 
 export interface PianoKey {
   note: string
@@ -12,6 +12,7 @@ export interface RecordedChord {
   id: string
   note: string
   octave: number
+  chordQuality: ChordQuality
   chordType: ChordType
   inversion: number
   timestamp: number
@@ -19,5 +20,6 @@ export interface RecordedChord {
 
 export interface ChordData {
   inversion: number
+  chordQuality: ChordQuality
   chordType: ChordType
 } 

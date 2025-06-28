@@ -2,16 +2,20 @@
 export const NOTES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
 export const OCTAVES = [4, 5] // Reduced to 2 octaves
 
-// Define chord types
-export const CHORD_TYPES = {
+// Define chord qualities (triads only)
+export const CHORD_QUALITIES = {
   major: [0, 4, 7],
   minor: [0, 3, 7],
   diminished: [0, 3, 6],
   augmented: [0, 4, 8],
-  major7: [0, 4, 7, 11],
-  minor7: [0, 3, 7, 10],
-  dominant7: [0, 4, 7, 10],
-  diminished7: [0, 3, 6, 9],
+} as const
+
+export type ChordQuality = keyof typeof CHORD_QUALITIES
+
+// Define chord types
+export const CHORD_TYPES = {
+  triad: 'triad',
+  seventh: 'seventh'
 } as const
 
 export type ChordType = keyof typeof CHORD_TYPES

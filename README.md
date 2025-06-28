@@ -5,14 +5,14 @@ A beautiful, interactive web application for learning and playing piano chords. 
 ## Features
 
 ### 🎵 **Dual Play Modes**
-- **Chord Mode**: Play various chord types (major, minor, diminished, augmented, 7th chords)
+- **Chord Mode**: Play various chord qualities (major, minor, diminished, augmented, 7th chords)
 - **Single Note Mode**: Play individual piano notes
 
 ### 🎼 **Comprehensive Chord Library**
 - **Triads**: Major, Minor, Diminished, Augmented
 - **7th Chords**: Major 7, Minor 7, Dominant 7, Diminished 7
 - **Inversions**: Root position, 1st, 2nd, and 3rd inversions
-- **Dynamic Options**: Chord type and inversion selectors update automatically
+- **Dynamic Options**: Chord quality and inversion selectors update automatically
 
 ### 🎹 **Realistic Piano Interface**
 - **2-Octave Range**: C4 to B5 (24 keys total)
@@ -62,7 +62,7 @@ npm run build
 
 ### Playing Chords
 1. Select "Chord" mode from the Play Mode dropdown
-2. Choose your desired chord type (Major, Minor, etc.)
+2. Choose your desired chord quality (Major, Minor, etc.)
 3. Select an inversion (Root Position, 1st Inversion, etc.)
 4. Click any piano key to play the chord with that note as the root
 
