@@ -33,7 +33,6 @@ export const generatePianoKeys = (octaveShift: number): PianoKey[] => {
 // Get key position for CSS styling
 export const getKeyPosition = (key: PianoKey): { left: string; zIndex: number } => {
   const noteIndex = NOTES.indexOf(key.note)
-  const whiteKeyIndex = getWhiteKeyIndex(noteIndex)
   
   // Calculate octave offset (each octave has 7 white keys)
   const octaveOffset = (key.octave - 4) * 7 // 4 is the base octave
@@ -43,13 +42,16 @@ export const getKeyPosition = (key: PianoKey): { left: string; zIndex: number } 
   const whiteKeyWidthPercent = 100 / totalWhiteKeys
   
   if (key.isBlack) {
-    const blackKeyOffset = getBlackKeyOffset(noteIndex)
-    const leftPosition = (whiteKeyIndex + octaveOffset) * whiteKeyWidthPercent + blackKeyOffset
+    // For black keys, find the white key to the left and center between them
+    const whiteKeyIndex = getWhiteKeyIndex(noteIndex)
+    const leftPosition = (whiteKeyIndex + octaveOffset) * whiteKeyWidthPercent + (whiteKeyWidthPercent * 0.6)
     return {
       left: `${leftPosition}%`,
       zIndex: 10
     }
   } else {
+    // For white keys, use their natural position
+    const whiteKeyIndex = getWhiteKeyIndex(noteIndex)
     const leftPosition = (whiteKeyIndex + octaveOffset) * whiteKeyWidthPercent
     return {
       left: `${leftPosition}%`,
@@ -63,25 +65,6 @@ const getWhiteKeyIndex = (noteIndex: number): number => {
   const whiteKeys = ['C', 'D', 'E', 'F', 'G', 'A', 'B']
   const note = NOTES[noteIndex]
   return whiteKeys.indexOf(note.replace('#', ''))
-}
-
-// Get black key offset for positioning (as percentage)
-const getBlackKeyOffset = (noteIndex: number): number => {
-  const note = NOTES[noteIndex]
-  const totalWhiteKeys = 14
-  const whiteKeyWidthPercent = 100 / totalWhiteKeys
-  
-  switch (note) {
-    case 'C#':
-    case 'D#':
-      return whiteKeyWidthPercent * 0.6 // 60% of white key width
-    case 'F#':
-    case 'G#':
-    case 'A#':
-      return whiteKeyWidthPercent * 0.4 // 40% of white key width
-    default:
-      return 0
-  }
 }
 
 // Get key width for CSS styling (as percentage)
