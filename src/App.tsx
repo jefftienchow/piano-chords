@@ -53,6 +53,22 @@ function App() {
   const [currentlyPlayingIndex, setCurrentlyPlayingIndex] = useState<number>(-1)
   const [octaveShift, setOctaveShift] = useState<number>(0)
 
+  // Keyboard to note mapping
+  const KEY_TO_NOTE: Record<string, string> = {
+    'a': 'C',
+    's': 'D', 
+    'd': 'E',
+    'f': 'F',
+    'g': 'G',
+    'h': 'A',
+    'j': 'B',
+    'w': 'C#',
+    'e': 'D#',
+    't': 'F#',
+    'y': 'G#',
+    'u': 'A#'
+  }
+
   // Initialize audio context and sampler
   useEffect(() => {
     // Create sample URLs for only the available notes
@@ -83,6 +99,107 @@ function App() {
       newSampler.dispose()
     }
   }, [])
+
+  // Function to add 7th to current chord type
+  const addSeventhToChordType = (chordType: keyof typeof CHORD_TYPES): keyof typeof CHORD_TYPES => {
+    switch (chordType) {
+      case 'major':
+        return 'major7'
+      case 'minor':
+        return 'minor7'
+      case 'diminished':
+        return 'diminished7'
+      case 'augmented':
+        return 'dominant7' // Augmented doesn't have a standard 7th, use dominant 7th
+      case 'major7':
+      case 'minor7':
+      case 'dominant7':
+      case 'diminished7':
+        return chordType // Already a 7th chord, keep as is
+      default:
+        return 'dominant7' // Fallback
+    }
+  }
+
+  // Play chord function with specific inversion
+  const playChordWithInversion = async (rootNote: string, octave: number, inversion: number) => {
+    if (!sampler) return
+
+    // Start audio context if not already started
+    if (Tone.context.state !== 'running') {
+      await Tone.start()
+    }
+
+    const chordIntervals = CHORD_TYPES[selectedChordType]
+    const invertedIntervals = applyInversion(chordIntervals, inversion)
+    
+    const chordNotes = invertedIntervals.map(interval => {
+      const noteIndex = NOTES.indexOf(rootNote)
+      const newIndex = (noteIndex + interval) % 12
+      return `${NOTES[newIndex]}${octave + Math.floor((noteIndex + interval) / 12)}`
+    })
+
+    sampler.triggerAttack(chordNotes)
+  }
+
+  // Stop chord function with specific inversion
+  const stopChordWithInversion = (rootNote: string, octave: number, inversion: number) => {
+    if (!sampler) return
+    
+    const chordIntervals = CHORD_TYPES[selectedChordType]
+    const invertedIntervals = applyInversion(chordIntervals, inversion)
+    
+    const chordNotes = invertedIntervals.map(interval => {
+      const noteIndex = NOTES.indexOf(rootNote)
+      const newIndex = (noteIndex + interval) % 12
+      return `${NOTES[newIndex]}${octave + Math.floor((noteIndex + interval) / 12)}`
+    })
+
+    // Stop each note in the chord
+    chordNotes.forEach(sampleString => {
+      sampler.triggerRelease(sampleString)
+    })
+  }
+
+  // Play chord function with specific inversion and chord type
+  const playChordWithInversionAndType = async (rootNote: string, octave: number, inversion: number, chordType: keyof typeof CHORD_TYPES) => {
+    if (!sampler) return
+
+    // Start audio context if not already started
+    if (Tone.context.state !== 'running') {
+      await Tone.start()
+    }
+
+    const chordIntervals = CHORD_TYPES[chordType]
+    const invertedIntervals = applyInversion(chordIntervals, inversion)
+    
+    const chordNotes = invertedIntervals.map(interval => {
+      const noteIndex = NOTES.indexOf(rootNote)
+      const newIndex = (noteIndex + interval) % 12
+      return `${NOTES[newIndex]}${octave + Math.floor((noteIndex + interval) / 12)}`
+    })
+
+    sampler.triggerAttack(chordNotes)
+  }
+
+  // Stop chord function with specific inversion and chord type
+  const stopChordWithInversionAndType = (rootNote: string, octave: number, inversion: number, chordType: keyof typeof CHORD_TYPES) => {
+    if (!sampler) return
+    
+    const chordIntervals = CHORD_TYPES[chordType]
+    const invertedIntervals = applyInversion(chordIntervals, inversion)
+    
+    const chordNotes = invertedIntervals.map(interval => {
+      const noteIndex = NOTES.indexOf(rootNote)
+      const newIndex = (noteIndex + interval) % 12
+      return `${NOTES[newIndex]}${octave + Math.floor((noteIndex + interval) / 12)}`
+    })
+
+    // Stop each note in the chord
+    chordNotes.forEach(sampleString => {
+      sampler.triggerRelease(sampleString)
+    })
+  }
 
   // Generate piano keys with octave shift
   const generatePianoKeys = (): PianoKey[] => {
@@ -328,6 +445,107 @@ function App() {
       return `${whiteKeyWidth}%`
     }
   }
+
+  // Handle keyboard events
+  useEffect(() => {
+    let temporaryInversion: number | null = null
+    let temporaryChordType: keyof typeof CHORD_TYPES | null = null
+    let activeChords: Map<string, { inversion: number; chordType: keyof typeof CHORD_TYPES }> = new Map()
+    
+    const handleKeyDown = (event: KeyboardEvent) => {
+      // Don't trigger if typing in an input field
+      if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement || event.target instanceof HTMLSelectElement) {
+        return
+      }
+
+      const key = event.key.toLowerCase()
+      const note = KEY_TO_NOTE[key]
+      
+      if (note && !event.repeat) { // !event.repeat prevents key repeat
+        const isShiftPressed = event.shiftKey
+        const baseOctave = 4 + octaveShift // Lower octave
+        const octave = isShiftPressed ? baseOctave + 1 : baseOctave
+        
+        if (playMode === 'note') {
+          playNote(note, octave)
+        } else {
+          // Use temporary inversion and chord type if available, otherwise use selected ones
+          const currentInversion = temporaryInversion !== null ? temporaryInversion : selectedInversion
+          const currentChordType = temporaryChordType !== null ? temporaryChordType : selectedChordType
+          playChordWithInversionAndType(note, octave, currentInversion, currentChordType)
+          // Track which inversion and chord type were used for this chord
+          activeChords.set(`${note}${octave}`, { inversion: currentInversion, chordType: currentChordType })
+          // Add to recording if recording is active
+          const keyData = { note, octave, isBlack: note.includes('#') } as PianoKey
+          addChordToRecording(keyData)
+        }
+      }
+      
+      // Handle temporary inversion changes with number keys
+      if (['1', '2', '3'].includes(key) && playMode === 'chord') {
+        const inversionNumber = parseInt(key) // Convert 1,2,3 to 1,2,3 (not 0,1,2)
+        const maxInversions = getMaxInversions()
+        
+        if (inversionNumber <= maxInversions) {
+          temporaryInversion = inversionNumber
+        }
+      }
+      
+      // Handle temporary chord type change with 7 key
+      if (key === '7' && playMode === 'chord') {
+        const seventhChordType = addSeventhToChordType(selectedChordType)
+        temporaryChordType = seventhChordType
+      }
+    }
+
+    const handleKeyUp = (event: KeyboardEvent) => {
+      // Don't trigger if typing in an input field
+      if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement || event.target instanceof HTMLSelectElement) {
+        return
+      }
+
+      const key = event.key.toLowerCase()
+      const note = KEY_TO_NOTE[key]
+      
+      if (note) {
+        const isShiftPressed = event.shiftKey
+        const baseOctave = 4 + octaveShift // Lower octave
+        const octave = isShiftPressed ? baseOctave + 1 : baseOctave
+        
+        if (playMode === 'note') {
+          stopNote(note, octave)
+        } else {
+          // Get the inversion and chord type that were used to play this chord
+          const chordKey = `${note}${octave}`
+          const chordData = activeChords.get(chordKey)
+          const inversionUsed = chordData?.inversion ?? selectedInversion
+          const chordTypeUsed = chordData?.chordType ?? selectedChordType
+          stopChordWithInversionAndType(note, octave, inversionUsed, chordTypeUsed)
+          activeChords.delete(chordKey) // Clean up tracking
+        }
+      }
+      
+      // Handle temporary inversion release
+      if (['1', '2', '3'].includes(key) && playMode === 'chord') {
+        temporaryInversion = null
+      }
+      
+      // Handle temporary chord type release
+      if (key === '7' && playMode === 'chord') {
+        temporaryChordType = null
+      }
+    }
+
+    // Add event listeners
+    document.addEventListener('keydown', handleKeyDown)
+    document.addEventListener('keyup', handleKeyUp)
+
+    // Cleanup
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown)
+      document.removeEventListener('keyup', handleKeyUp)
+    }
+  }, [playMode, octaveShift, selectedChordType, selectedInversion, isRecording, sampler])
 
   return (
     <div className="app">
