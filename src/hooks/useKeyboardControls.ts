@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { KEY_TO_NOTE, type PlayMode, type ChordType, type ChordQuality } from '../constants/music'
 import type { PianoKey } from '../types/music'
 import { getChordIntervals, applyInversion, generateChordNotes } from '../utils/music'
@@ -32,11 +32,12 @@ export const useKeyboardControls = ({
   onAddToRecording,
   getMaxInversions
 }: UseKeyboardControlsProps) => {
+  // Use refs to maintain state across renders
+  const activeChordsRef = useRef<Map<string, { inversion: number; quality: ChordQuality; chordType: ChordType }>>(new Map())
+  const temporaryInversionRef = useRef<number | null>(null)
+  const temporaryChordTypeRef = useRef<ChordType | null>(null)
+
   useEffect(() => {
-    let temporaryInversion: number | null = null
-    let temporaryChordType: ChordType | null = null
-    let activeChords: Map<string, { inversion: number; quality: ChordQuality; chordType: ChordType }> = new Map()
-    
     const handleKeyDown = (event: KeyboardEvent) => {
       // Don't trigger if typing in an input field
       if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement || event.target instanceof HTMLSelectElement) {
@@ -55,12 +56,12 @@ export const useKeyboardControls = ({
           onNotePlay(note, octave)
         } else {
           // Use temporary inversion and chord type if available, otherwise use selected ones
-          const currentInversion = temporaryInversion !== null ? temporaryInversion : selectedInversion
-          const currentChordType = temporaryChordType !== null ? temporaryChordType : selectedChordType
+          const currentInversion = temporaryInversionRef.current !== null ? temporaryInversionRef.current : selectedInversion
+          const currentChordType = temporaryChordTypeRef.current !== null ? temporaryChordTypeRef.current : selectedChordType
           onChordPlay(note, octave, currentInversion, selectedChordQuality, currentChordType)
           // Track which inversion and chord quality were used for this chord
           const chordKey = `${note}${octave}`
-          activeChords.set(chordKey, { inversion: currentInversion, quality: selectedChordQuality, chordType: currentChordType })
+          activeChordsRef.current.set(chordKey, { inversion: currentInversion, quality: selectedChordQuality, chordType: currentChordType })
           // Add to recording if recording is active
           const keyData = { note, octave, isBlack: note.includes('#') } as PianoKey
           onAddToRecording(keyData)
@@ -73,13 +74,13 @@ export const useKeyboardControls = ({
         const maxInversions = getMaxInversions()
         
         if (inversionNumber <= maxInversions) {
-          temporaryInversion = inversionNumber
+          temporaryInversionRef.current = inversionNumber
         }
       }
       
       // Handle temporary chord type change with 7 key
       if (key === '7' && playMode === 'chord') {
-        temporaryChordType = 'seventh'
+        temporaryChordTypeRef.current = 'seventh'
       }
     }
 
@@ -102,36 +103,24 @@ export const useKeyboardControls = ({
         } else {
           // Get the inversion and chord quality that were used to play this chord
           const chordKey = `${note}${octave}`
-          const chordData = activeChords.get(chordKey)
+          const chordData = activeChordsRef.current.get(chordKey)
+          
           if (chordData) {
-            // Generate all the chord notes and stop each one individually
-            const intervals = getChordIntervals(chordData.quality, chordData.chordType)
-            const invertedIntervals = applyInversion(intervals, chordData.inversion)
-            const chordNotes = generateChordNotes(note, invertedIntervals, octave)
-            
-            // Stop each note in the chord individually
-            chordNotes.forEach(chordNote => {
-              // Extract the note name and octave from the chord note string
-              const noteMatch = chordNote.match(/([A-G]#?)(\d+)/)
-              if (noteMatch) {
-                const [, noteName, noteOctave] = noteMatch
-                onNoteStop(noteName, parseInt(noteOctave))
-              }
-            })
-            
-            activeChords.delete(chordKey)
+            // Use onChordStop to properly stop the chord
+            onChordStop(note, octave, chordData.inversion, chordData.quality, chordData.chordType)
+            activeChordsRef.current.delete(chordKey)
           }
         }
       }
       
       // Handle temporary inversion release
       if (['1', '2', '3'].includes(key) && playMode === 'chord') {
-        temporaryInversion = null
+        temporaryInversionRef.current = null
       }
       
       // Handle temporary chord type release
-      if (key === '7' && temporaryChordType) {
-        temporaryChordType = null
+      if (key === '7' && temporaryChordTypeRef.current) {
+        temporaryChordTypeRef.current = null
       }
     }
 

@@ -87,8 +87,13 @@ function App() {
     setIsPlaying(true)
   }, [sampler])
 
-  const handleChordStop = useCallback((note: string, octave: number, inversion: number, quality: ChordQuality, type: ChordType) => {
+  const handleChordStop = useCallback(async (note: string, octave: number, inversion: number, quality: ChordQuality, type: ChordType) => {
     if (!sampler) return
+    
+    // Ensure audio context is running
+    if (sampler.context.state !== 'running') {
+      await Tone.start()
+    }
     
     const intervals = getChordIntervals(quality, type)
     const invertedIntervals = applyInversion(intervals, inversion)
