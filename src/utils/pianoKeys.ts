@@ -31,11 +31,14 @@ export const generatePianoKeys = (octaveShift: number): PianoKey[] => {
 }
 
 // Get key position for CSS styling
-export const getKeyPosition = (key: PianoKey): { left: string; zIndex: number } => {
+export const getKeyPosition = (key: PianoKey, octaveShift: number = 0): { left: string; zIndex: number } => {
   const noteIndex = NOTES.indexOf(key.note)
   
+  // Calculate the base octave for positioning (lowest octave in the shifted range)
+  const baseOctave = 4 + octaveShift
+  
   // Calculate octave offset (each octave has 7 white keys)
-  const octaveOffset = (key.octave - 4) * 7 // 4 is the base octave
+  const octaveOffset = (key.octave - baseOctave) * 7
   
   // Total white keys across both octaves = 14
   const totalWhiteKeys = 14

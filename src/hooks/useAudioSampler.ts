@@ -4,6 +4,7 @@ import { AVAILABLE_SAMPLES } from '../constants/music'
 
 export const useAudioSampler = () => {
   const [sampler, setSampler] = useState<Tone.Sampler | null>(null)
+  const [isLoaded, setIsLoaded] = useState(false)
 
   useEffect(() => {
     // Create sample URLs for only the available notes
@@ -23,6 +24,7 @@ export const useAudioSampler = () => {
       release: 1,
       onload: () => {
         console.log("Samples loaded")
+        setIsLoaded(true)
       }
     }).toDestination()
 
@@ -54,6 +56,7 @@ export const useAudioSampler = () => {
 
   return {
     sampler,
+    isLoaded,
     playNotes,
     stopNotes,
     startAudioContext

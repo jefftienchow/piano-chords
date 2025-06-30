@@ -1,4 +1,4 @@
-import { NOTES, CHORD_QUALITIES, CHORD_TYPES, type ChordType, type ChordQuality } from '../constants/music'
+import { NOTES, CHORD_QUALITIES, CHORD_TYPES, AVAILABLE_SAMPLES, type ChordType, type ChordQuality } from '../constants/music'
 
 // Apply inversion to chord intervals
 export const applyInversion = (intervals: number[], inversion: number): number[] => {
@@ -94,4 +94,31 @@ export const abbreviateChord = (quality: ChordQuality, type: ChordType): string 
   }
   
   return qualityAbbr
+}
+
+// Map any note to the closest available sample
+export const mapNoteToAvailableSample = (note: string, octave: number): { note: string; octave: number } => {
+  const noteIndex = NOTES.indexOf(note)
+  const availableIndices = AVAILABLE_SAMPLES.map(n => NOTES.indexOf(n))
+  
+  // Find the closest available note
+  let closestIndex = availableIndices[0]
+  let minDistance = Math.abs(noteIndex - closestIndex)
+  
+  for (const availableIndex of availableIndices) {
+    const distance = Math.abs(noteIndex - availableIndex)
+    if (distance < minDistance) {
+      minDistance = distance
+      closestIndex = availableIndex
+    }
+  }
+  
+  // Calculate the octave difference
+  const octaveDiff = Math.floor((noteIndex - closestIndex) / 12)
+  const targetOctave = octave + octaveDiff
+  
+  return {
+    note: NOTES[closestIndex],
+    octave: targetOctave
+  }
 } 

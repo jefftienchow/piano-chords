@@ -37,15 +37,25 @@ function App() {
   const shouldStopPlayback = useRef(false)
 
   // Audio hook
-  const { sampler, playNotes, stopNotes } = useAudioSampler()
+  const { sampler } = useAudioSampler()
 
   // Generate piano keys
   const pianoKeys = generatePianoKeys(octaveShift)
 
+  // Start audio context when component mounts
+  useEffect(() => {
+    const startContext = async () => {
+      if (Tone.context.state !== 'running') {
+        await Tone.start()
+      }
+    }
+    startContext()
+  }, [])
+
   // Audio handlers - using sampler directly for now
   const handleNotePlay = useCallback(async (note: string, octave: number) => {
     if (!sampler) return
-
+    
     // Start audio context if not already started
     if (sampler.context.state !== 'running') {
       await Tone.start()
@@ -310,7 +320,7 @@ function App() {
       <div className="piano-container">
         <div className="piano">
           {pianoKeys.map((key) => {
-            const position = getKeyPosition(key)
+            const position = getKeyPosition(key, octaveShift)
             const width = getKeyWidth(key)
             const isCurrentlyPlaying = currentlyPlayingIndex >= 0 && 
               recordedChords[currentlyPlayingIndex]?.note === key.note && 

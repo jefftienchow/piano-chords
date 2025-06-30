@@ -1,6 +1,6 @@
 // Define note names and their frequencies
 export const NOTES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
-export const OCTAVES = [4, 5] // Reduced to 2 octaves
+export const OCTAVES = [4, 5] // Show 2 octaves at a time
 
 // Define chord qualities (triads only)
 export const CHORD_QUALITIES = {

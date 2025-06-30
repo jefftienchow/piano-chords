@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { KEY_TO_NOTE, type PlayMode, type ChordType, type ChordQuality } from '../constants/music'
 import type { PianoKey } from '../types/music'
+import { getChordIntervals, applyInversion, generateChordNotes } from '../utils/music'
 
 interface UseKeyboardControlsProps {
   playMode: PlayMode
@@ -103,7 +104,21 @@ export const useKeyboardControls = ({
           const chordKey = `${note}${octave}`
           const chordData = activeChords.get(chordKey)
           if (chordData) {
-            onChordStop(note, octave, chordData.inversion, chordData.quality, chordData.chordType)
+            // Generate all the chord notes and stop each one individually
+            const intervals = getChordIntervals(chordData.quality, chordData.chordType)
+            const invertedIntervals = applyInversion(intervals, chordData.inversion)
+            const chordNotes = generateChordNotes(note, invertedIntervals, octave)
+            
+            // Stop each note in the chord individually
+            chordNotes.forEach(chordNote => {
+              // Extract the note name and octave from the chord note string
+              const noteMatch = chordNote.match(/([A-G]#?)(\d+)/)
+              if (noteMatch) {
+                const [, noteName, noteOctave] = noteMatch
+                onNoteStop(noteName, parseInt(noteOctave))
+              }
+            })
+            
             activeChords.delete(chordKey)
           }
         }
